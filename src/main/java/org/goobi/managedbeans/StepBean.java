@@ -360,8 +360,15 @@ public class StepBean extends BasicBean implements Serializable {
         List<Step> currentStepsOfBatch;
         if (batchNumber != null) {
             // only steps with same title
-            String sql = "schritte.titel = '" + steptitle + "' and prozesse.batchID = " + batchNumber;
-            currentStepsOfBatch = StepManager.getSteps(null, sql, 0, Integer.MAX_VALUE, institution);
+            StringBuilder builder = new StringBuilder();
+            builder.append("schritte.titel = '");
+            builder.append(steptitle);
+            builder.append("' AND batchStep = true AND prozesse.batchID = ");
+            builder.append(batchNumber);
+            builder.append(" AND ");
+            builder.append(FilterHelper.limitToUserAssignedSteps(true, false, true));
+
+            currentStepsOfBatch = StepManager.getSteps(null, builder.toString(), 0, Integer.MAX_VALUE, institution);
 
         } else {
             return SchrittDurchBenutzerUebernehmen();
@@ -441,11 +448,15 @@ public class StepBean extends BasicBean implements Serializable {
         List<Step> currentStepsOfBatch;
         if (batchNumber != null) {
             // only steps with same title
-            currentStepsOfBatch = StepManager.getSteps(null,
-                    "schritte.titel = '" + steptitle
-                            + "'  AND batchStep = true AND schritte.prozesseID in (select prozesse.prozesseID from prozesse where batchID = "
-                            + batchNumber + ")",
-                    0, Integer.MAX_VALUE, institution);
+            StringBuilder builder = new StringBuilder();
+            builder.append("schritte.titel = '");
+            builder.append(steptitle);
+            builder.append("' and prozesse.batchID = ");
+            builder.append(batchNumber);
+            builder.append(" AND ");
+            builder.append(FilterHelper.limitToUserAssignedSteps(false, true, true));
+
+            currentStepsOfBatch = StepManager.getSteps(null, builder.toString(), 0, Integer.MAX_VALUE, institution);
 
         } else {
             return RETURN_PAGE_EDIT;
