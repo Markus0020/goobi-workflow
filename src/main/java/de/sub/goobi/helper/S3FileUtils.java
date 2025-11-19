@@ -216,7 +216,6 @@ public class S3FileUtils implements StorageProviderInterface {
             ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
                     .prefix(prefix)
                     .bucket(getBucket())
-                    .delimiter("/")
                     .continuationToken(nextContinuationToken);
 
             CompletableFuture<ListObjectsV2Response> response = s3.listObjectsV2(requestBuilder.build());
@@ -225,19 +224,20 @@ public class S3FileUtils implements StorageProviderInterface {
             nextContinuationToken = resp.nextContinuationToken();
 
             List<S3Object> contents = resp.contents();
-            List<ObjectIdentifier> toDelete = new ArrayList<>();
-            for (S3Object obj : contents) {
-                toDelete.add(ObjectIdentifier.builder()
-                        .key(obj.key())
-                        .build());
+            if (!contents.isEmpty()) {
+                List<ObjectIdentifier> toDelete = new ArrayList<>();
+                for (S3Object obj : contents) {
+                    toDelete.add(ObjectIdentifier.builder()
+                            .key(obj.key())
+                            .build());
+                }
+                DeleteObjectsRequest dor = DeleteObjectsRequest.builder()
+                        .bucket(getBucket())
+                        .delete(d -> d.objects(toDelete))
+                        .build();
+
+                s3.deleteObjects(dor).join();
             }
-
-            DeleteObjectsRequest dor = DeleteObjectsRequest.builder()
-                    .bucket(getBucket())
-                    .delete(d -> d.objects(toDelete))
-                    .build();
-
-            s3.deleteObjects(dor).join();
 
         } while (nextContinuationToken != null);
 
