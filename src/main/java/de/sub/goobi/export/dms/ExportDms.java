@@ -33,6 +33,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -387,9 +388,29 @@ public class ExportDms extends ExportMets implements IExportPlugin {
         BufferedReader reader = null;
         try {
             String[] com = { command };
-            java.lang.Process exportValidationProcess = Runtime.getRuntime().exec(com);
-            Integer exitVal = exportValidationProcess.waitFor();
 
+            List<String> argList = new ArrayList<>();
+
+            if (command != null && !command.isEmpty()) {
+                String[] params = null;
+                if (command.contains("\"")) {
+                    params = command.split("\"");
+                } else {
+                    params = command.split(" ");
+                }
+                for (String param : params) {
+                    if (!param.trim().isEmpty()) {
+                        argList.add(param.trim());
+                    }
+                }
+            } else {
+                argList.add(command);
+            }
+
+            String[] callSequence = argList.toArray(new String[argList.size()]);
+            ProcessBuilder pb = new ProcessBuilder(callSequence);
+            java.lang.Process exportValidationProcess = pb.start();
+            int exitVal = exportValidationProcess.waitFor();
             InputStream errorInputStream = exportValidationProcess.getErrorStream();
             errorStreamReader = new InputStreamReader(errorInputStream);
             reader = new BufferedReader(errorStreamReader);
@@ -407,9 +428,9 @@ public class ExportDms extends ExportMets implements IExportPlugin {
                 errorMessage.append("\" with validation command: \"");
                 errorMessage.append(command);
                 errorMessage.append("\", exit code was: ");
-                errorMessage.append(exitVal.toString());
+                errorMessage.append(exitVal);
                 String errorDetails = errorMessage.toString();
-                Helper.setFehlerMeldung(EXPORT_ERROR_PREFIX + errorDetails, exitVal.toString());
+                Helper.setFehlerMeldung(EXPORT_ERROR_PREFIX + errorDetails, "" + exitVal);
                 Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, errorDetails);
                 log.error(EXPORT_ERROR_PREFIX + errorDetails);
                 problems.add(EXPORT_ERROR_PREFIX + errorDetails);
