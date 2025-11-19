@@ -313,6 +313,23 @@
 									</button>
 									<!-- // INACTIVE EXPORT BUTTON -->
 
+
+									<!-- DOWNLOAD DOCKET -->
+									<button
+										jsf:action="#{ProzessverwaltungForm.downloadDocket}"
+										jsf:id="action24"
+										class="btn d-flex align-items-center btn--title-action"
+										title="#{msgs.process_generateDocket}"
+										aria-label="#{msgs.process_generateDocket}"
+										jsf:rel="tooltip"
+										jsf:rendered="#{!ProzessverwaltungForm.myProzess.istTemplate}">
+										<span class="fa fa-print" />
+										<f:passThroughAttribute
+											name="data-toggle"
+											value="tooltip" />
+									</button>
+									<!-- // DOWNLOAD DOCKET -->
+									
 									<!-- DOWNLOD DATABASE CONTENT BUTTON -->
 									<button
 										jsf:action="#{ProzessverwaltungForm.downloadProcessDatebaseInformation}"
