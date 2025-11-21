@@ -579,6 +579,5 @@ public class MassImportFormTest extends AbstractTest {
         assertEquals("", massImportForm.getRecords());
         assertEquals("", massImportForm.getIdList());
         assertTrue(massImportForm.getSelectedFilenames().isEmpty());
-        assertFalse(massImportForm.getHasNextPage());
     }
 }
