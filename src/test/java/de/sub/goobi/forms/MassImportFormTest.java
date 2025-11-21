@@ -559,29 +559,6 @@ public class MassImportFormTest extends AbstractTest {
     }
 
     @Test
-    public void testResetImportState() {
-
-        MassImportForm massImportForm = new MassImportForm();
-        assertNotNull(massImportForm);
-
-        massImportForm.setCurrentPlugin("JUnitImportPlugin");
-        massImportForm.setRecords("SomeRecords");
-        massImportForm.setIdList("SomeIDs");
-        List<String> filenames = new ArrayList<>();
-        filenames.add("test");
-        massImportForm.setSelectedFilenames(filenames);
-
-        Method resetMethod = MassImportForm.class.getDeclaredMethod("resetImportState");
-        resetMethod.setAccessible(true);
-        resetMethod.invoke(massImportForm);
-
-        assertEquals("", massImportForm.getCurrentPlugin());
-        assertEquals("", massImportForm.getRecords());
-        assertEquals("", massImportForm.getIdList());
-        assertTrue(massImportForm.getSelectedFilenames().isEmpty());
-    }
-
-    @Test
     public void testPrepareResetsState() {
 
         MassImportForm massImportForm = new MassImportForm();
