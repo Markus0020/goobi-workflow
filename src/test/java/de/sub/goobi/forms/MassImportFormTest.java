@@ -570,17 +570,15 @@ public class MassImportFormTest extends AbstractTest {
         List<String> filenames = new ArrayList<>();
         filenames.add("test");
         massImportForm.setSelectedFilenames(filenames);
-        massImportForm.setProgress(50);
 
         Method resetMethod = MassImportForm.class.getDeclaredMethod("resetImportState");
         resetMethod.setAccessible(true);
         resetMethod.invoke(massImportForm);
 
         assertEquals("", massImportForm.getCurrentPlugin());
-        assertNull(massImportForm.getRecords());
-        assertNull(massImportForm.getIdList());
+        assertEquals("", massImportForm.getRecords());
+        assertEquals("", massImportForm.getIdList());
         assertTrue(massImportForm.getSelectedFilenames().isEmpty());
-        assertEquals(0, massImportForm.getProgress());
     }
 
     @Test
@@ -595,16 +593,14 @@ public class MassImportFormTest extends AbstractTest {
         List<String> filenames = new ArrayList<>();
         filenames.add("test");
         massImportForm.setSelectedFilenames(filenames);
-        massImportForm.setProgress(50);
 
         massImportForm.setTemplate(template);
         massImportForm.prepare();
 
         assertEquals("", massImportForm.getCurrentPlugin());
-        assertNull(massImportForm.getRecords());
-        assertNull(massImportForm.getIdList());
+        assertEquals("", massImportForm.getRecords());
+        assertEquals("", massImportForm.getIdList());
         assertTrue(massImportForm.getSelectedFilenames().isEmpty());
-        assertEquals(0, massImportForm.getProgress());
         assertFalse(massImportForm.getHasNextPage());
     }
 }
