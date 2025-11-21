@@ -199,6 +199,9 @@ public class MassImportForm implements Serializable {
             Helper.setFehlerMeldung("projectIsArchived");
             return "";
         }
+
+        resetImportState();
+
         configuredProperties = PropertyParser.getInstance().getProcessCreationProperties(template, template.getTitel());
         uploadedFile = null;
 
@@ -241,6 +244,21 @@ public class MassImportForm implements Serializable {
         }
 
         return "process_import_1";
+    }
+
+    /**
+     * Reset the bean state before preparing the form
+     */
+    private void resetImportState() {
+        this.currentPlugin = "";
+        this.plugin = null;
+        this.importFile = null;
+        this.records = "";
+        this.idList = "";
+        this.selectedFilenames = new ArrayList<>();
+        this.progress = 0;
+        this.currentProcessNo = 0;
+        this.totalProcessNo = 0;
     }
 
     /**
