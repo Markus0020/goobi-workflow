@@ -28,7 +28,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -564,6 +563,9 @@ public class MassImportFormTest extends AbstractTest {
         MassImportForm massImportForm = new MassImportForm();
         assertNotNull(massImportForm);
 
+        massImportForm.setTemplate(template);
+        secondStep.setBenutzer(userList);
+
         massImportForm.setCurrentPlugin("JUnitImportPlugin");
         massImportForm.setRecords("SomeRecords");
         massImportForm.setIdList("SomeIDs");
@@ -571,7 +573,6 @@ public class MassImportFormTest extends AbstractTest {
         filenames.add("test");
         massImportForm.setSelectedFilenames(filenames);
 
-        massImportForm.setTemplate(template);
         massImportForm.prepare();
 
         assertEquals("", massImportForm.getCurrentPlugin());
