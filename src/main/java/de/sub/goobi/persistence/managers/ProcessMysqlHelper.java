@@ -182,7 +182,10 @@ final class ProcessMysqlHelper implements Serializable {
                     MySQLHelper.closeConnection(connection);
                 }
             }
+        }
 
+        for (GoobiProperty gp : batch.getProperties()) {
+            PropertyMysqlHelper.saveProperty(gp);
         }
 
     }
