@@ -76,7 +76,8 @@ public class GoobiProperty implements IGoobiProperty, Serializable {
         PROCESS("process"),
         USER("user"),
         ERROR("error"),
-        PROJECT("project");
+        PROJECT("project"),
+        BATCH("batch");
 
         @Getter
         private String title;

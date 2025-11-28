@@ -33,6 +33,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -126,42 +127,14 @@ public class ExportDms extends ExportMets implements IExportPlugin {
          * -------------------------------- Dokument einlesen --------------------------------
          */
         Fileformat gdzfile;
-        Fileformat exportValidationFile;
-
         ExportFileformat exportValidationNewfile =
                 MetadatenHelper.getExportFileformatByName(myProzess.getProjekt().getFileFormatDmsExport(), myProzess.getRegelsatz());
 
         try {
             gdzfile = myProzess.readMetadataFile();
-
             // Check for existing Export Validator, and if it exists, run the associated command
             if (myProzess.isConfiguredWithExportValidator()) {
-                Helper.setMeldung(null, myProzess.getTitel() + ": ", "XML validation found");
-
-                exportValidationNewfile.setDigitalDocument(gdzfile.getDigitalDocument());
-                exportValidationFile = exportValidationNewfile;
-                trimAllMetadata(exportValidationFile.getDigitalDocument().getLogicalDocStruct());
-                Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder() + atsPpnBand + ".xml");
-                writeMetsFile(myProzess, temporaryFile.toString(), exportValidationFile, false);
-
-                String pathToGeneratedFile = ConfigurationHelper.getInstance().getTemporaryFolder() + atsPpnBand + ".xml";
-                String command = myProzess.getExportValidator().getCommand();
-
-                // replace {EXPORTFILE} keyword from configuration file
-                final String exportTag = "{EXPORTFILE}";
-                if (!command.contains(exportTag)) {
-                    String details = "Export validation command does not contain required {EXPORTFILE} tag. Aborting export. Command: " + command;
-                    Helper.setFehlerMeldung(errorMessageTitle, details);
-                    Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, details);
-                    log.warn(EXPORT_ERROR_PREFIX + details);
-                    problems.add(EXPORT_ERROR_PREFIX + "Malformed export validation command.");
-                    return false;
-                }
-                command = command.replace(exportTag, pathToGeneratedFile);
-
-                Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, "Started export validation using command: " + command);
-
-                if (!executeValidation(myProzess, temporaryFile, command)) {
+                if (!prepareExportValidation(myProzess, errorMessageTitle, atsPpnBand, gdzfile, exportValidationNewfile)) {
                     return false;
                 }
             }
@@ -178,10 +151,7 @@ public class ExportDms extends ExportMets implements IExportPlugin {
         trimAllMetadata(gdzfile.getDigitalDocument().getLogicalDocStruct());
         VariableReplacer replacer = new VariableReplacer(gdzfile.getDigitalDocument(), this.myPrefs, myProzess, null);
 
-        /*
-         * -------------------------------- Metadaten validieren --------------------------------
-         */
-
+        // validate metadata
         if (ConfigurationHelper.getInstance().isUseMetadataValidation()) {
             MetadatenVerifizierung mv = new MetadatenVerifizierung();
             if (!mv.validate(gdzfile, this.myPrefs, myProzess)) {
@@ -193,9 +163,7 @@ public class ExportDms extends ExportMets implements IExportPlugin {
             }
         }
 
-        /*
-         * -------------------------------- Speicherort vorbereiten und downloaden --------------------------------
-         */
+        // prepare destination
         String zielVerzeichnis;
         Path benutzerHome;
         if (myProzess.getProjekt().isUseDmsImport()) {
@@ -254,9 +222,8 @@ public class ExportDms extends ExportMets implements IExportPlugin {
             }
             prepareUserDirectory(zielVerzeichnis);
         }
-        /*
-         * -------------------------------- der eigentliche Download der Images --------------------------------
-         */
+
+        // file export
         try {
             if (this.exportWithImages) {
                 imageDownload(myProzess, benutzerHome, atsPpnBand, DIRECTORY_SUFFIX);
@@ -276,38 +243,7 @@ public class ExportDms extends ExportMets implements IExportPlugin {
                 fulltextDownload(myProzess, benutzerHome, atsPpnBand, DIRECTORY_SUFFIX);
             }
 
-            String ed = myProzess.getExportDirectory();
-            Path exportFolder = Paths.get(ed);
-            if (StorageProvider.getInstance().isFileExists(exportFolder) && StorageProvider.getInstance().isDirectory(exportFolder)) {
-                List<Path> filesInExportFolder = StorageProvider.getInstance().listFiles(ed);
-
-                for (Path exportFile : filesInExportFolder) {
-                    if (StorageProvider.getInstance().isDirectory(exportFile)
-                            && !StorageProvider.getInstance().list(exportFile.toString()).isEmpty()) {
-                        if (!exportFile.getFileName().toString().matches(".+\\.\\d+")) {
-                            String suffix = exportFile.getFileName().toString().substring(exportFile.getFileName().toString().lastIndexOf("_"));
-                            Path destination = Paths.get(benutzerHome.toString(), atsPpnBand + suffix);
-                            if (!StorageProvider.getInstance().isFileExists(destination)) {
-                                StorageProvider.getInstance().createDirectories(destination);
-                            }
-                            List<Path> files = StorageProvider.getInstance().listFiles(exportFile.toString());
-                            for (Path file : files) {
-                                Path target = Paths.get(destination.toString(), file.getFileName().toString());
-                                StorageProvider.getInstance().copyFile(file, target);
-                            }
-                        }
-                    } else {
-                        // if it is a regular file, export it to source folder
-                        Path destination = Paths.get(benutzerHome.toString(), atsPpnBand + "_src");
-                        if (!StorageProvider.getInstance().isFileExists(destination)) {
-                            StorageProvider.getInstance().createDirectories(destination);
-                        }
-                        Path target = Paths.get(destination.toString(), exportFile.getFileName().toString());
-                        StorageProvider.getInstance().copyFile(exportFile, target);
-                    }
-
-                }
-            }
+            exportFolderDownload(myProzess, atsPpnBand, benutzerHome);
         } catch (AccessDeniedException exception) {
             String errorDetails = "Access to " + exception.getMessage() + " was denied.";
             Helper.setFehlerMeldung(errorMessageTitle, errorDetails);
@@ -320,12 +256,14 @@ public class ExportDms extends ExportMets implements IExportPlugin {
             return false;
         }
 
-        /*
-         * -------------------------------- zum Schluss Datei an gewünschten Ort
-         * exportieren entweder direkt in den Import-Ordner oder ins
-         * Benutzerhome anschliessend den Import-Thread starten
-         * --------------------------------
-         */
+        exportMetadataFile(myProzess, atsPpnBand, gdzfile, replacer, zielVerzeichnis, benutzerHome);
+        return true;
+    }
+
+    public void exportMetadataFile(Process myProzess, String atsPpnBand, Fileformat gdzfile, VariableReplacer replacer, String zielVerzeichnis,
+            Path benutzerHome) throws PreferencesException, WriteException, IOException, InterruptedException, SwapException, DAOException,
+            TypeNotAllowedForParentException {
+        // write mets file
         boolean externalExport =
                 MetadatenHelper.getExportFileformatByName(myProzess.getProjekt().getFileFormatDmsExport(), myProzess.getRegelsatz()) != null;
         if (myProzess.getProjekt().isUseDmsImport()) {
@@ -377,6 +315,75 @@ public class ExportDms extends ExportMets implements IExportPlugin {
 
             Helper.setMeldung(null, myProzess.getTitel() + ": ", "ExportFinished");
         }
+    }
+
+    public void exportFolderDownload(Process myProzess, String atsPpnBand, Path benutzerHome) throws SwapException, IOException {
+        String ed = myProzess.getExportDirectory();
+        Path exportFolder = Paths.get(ed);
+        if (StorageProvider.getInstance().isFileExists(exportFolder) && StorageProvider.getInstance().isDirectory(exportFolder)) {
+            List<Path> filesInExportFolder = StorageProvider.getInstance().listFiles(ed);
+
+            for (Path exportFile : filesInExportFolder) {
+                if (StorageProvider.getInstance().isDirectory(exportFile)
+                        && !StorageProvider.getInstance().list(exportFile.toString()).isEmpty()) {
+                    if (!exportFile.getFileName().toString().matches(".+\\.\\d+")) {
+                        String suffix = exportFile.getFileName().toString().substring(exportFile.getFileName().toString().lastIndexOf("_"));
+                        Path destination = Paths.get(benutzerHome.toString(), atsPpnBand + suffix);
+                        if (!StorageProvider.getInstance().isFileExists(destination)) {
+                            StorageProvider.getInstance().createDirectories(destination);
+                        }
+                        List<Path> files = StorageProvider.getInstance().listFiles(exportFile.toString());
+                        for (Path file : files) {
+                            Path target = Paths.get(destination.toString(), file.getFileName().toString());
+                            StorageProvider.getInstance().copyFile(file, target);
+                        }
+                    }
+                } else {
+                    // if it is a regular file, export it to source folder
+                    Path destination = Paths.get(benutzerHome.toString(), atsPpnBand + "_src");
+                    if (!StorageProvider.getInstance().isFileExists(destination)) {
+                        StorageProvider.getInstance().createDirectories(destination);
+                    }
+                    Path target = Paths.get(destination.toString(), exportFile.getFileName().toString());
+                    StorageProvider.getInstance().copyFile(exportFile, target);
+                }
+
+            }
+        }
+    }
+
+    public boolean prepareExportValidation(Process myProzess, String errorMessageTitle, String atsPpnBand, Fileformat gdzfile,
+            ExportFileformat exportValidationNewfile) throws PreferencesException, WriteException, IOException, InterruptedException, SwapException,
+            DAOException, TypeNotAllowedForParentException {
+        Fileformat exportValidationFile;
+        Helper.setMeldung(null, myProzess.getTitel() + ": ", "XML validation found");
+
+        exportValidationNewfile.setDigitalDocument(gdzfile.getDigitalDocument());
+        exportValidationFile = exportValidationNewfile;
+        trimAllMetadata(exportValidationFile.getDigitalDocument().getLogicalDocStruct());
+        Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder() + atsPpnBand + ".xml");
+        writeMetsFile(myProzess, temporaryFile.toString(), exportValidationFile, false);
+
+        String pathToGeneratedFile = ConfigurationHelper.getInstance().getTemporaryFolder() + atsPpnBand + ".xml";
+        String command = myProzess.getExportValidator().getCommand();
+
+        // replace {EXPORTFILE} keyword from configuration file
+        final String exportTag = "{EXPORTFILE}";
+        if (!command.contains(exportTag)) {
+            String details = "Export validation command does not contain required {EXPORTFILE} tag. Aborting export. Command: " + command;
+            Helper.setFehlerMeldung(errorMessageTitle, details);
+            Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, details);
+            log.warn(EXPORT_ERROR_PREFIX + details);
+            problems.add(EXPORT_ERROR_PREFIX + "Malformed export validation command.");
+            return false;
+        }
+        command = command.replace(exportTag, pathToGeneratedFile);
+
+        Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, "Started export validation using command: " + command);
+
+        if (!executeValidation(myProzess, temporaryFile, command)) {
+            return false;
+        }
         return true;
     }
 
@@ -386,10 +393,27 @@ public class ExportDms extends ExportMets implements IExportPlugin {
         InputStreamReader errorStreamReader = null;
         BufferedReader reader = null;
         try {
-            String[] com = { command };
-            java.lang.Process exportValidationProcess = Runtime.getRuntime().exec(com);
-            Integer exitVal = exportValidationProcess.waitFor();
+            List<String> argList = new ArrayList<>();
+            if (command != null && !command.isEmpty()) {
+                String[] params = null;
+                if (command.contains("\"")) {
+                    params = command.split("\"");
+                } else {
+                    params = command.split(" ");
+                }
+                for (String param : params) {
+                    if (!param.trim().isEmpty()) {
+                        argList.add(param.trim());
+                    }
+                }
+            } else {
+                argList.add(command);
+            }
 
+            String[] callSequence = argList.toArray(new String[argList.size()]);
+            ProcessBuilder pb = new ProcessBuilder(callSequence);
+            java.lang.Process exportValidationProcess = pb.start();
+            int exitVal = exportValidationProcess.waitFor();
             InputStream errorInputStream = exportValidationProcess.getErrorStream();
             errorStreamReader = new InputStreamReader(errorInputStream);
             reader = new BufferedReader(errorStreamReader);
@@ -407,9 +431,9 @@ public class ExportDms extends ExportMets implements IExportPlugin {
                 errorMessage.append("\" with validation command: \"");
                 errorMessage.append(command);
                 errorMessage.append("\", exit code was: ");
-                errorMessage.append(exitVal.toString());
+                errorMessage.append(exitVal);
                 String errorDetails = errorMessage.toString();
-                Helper.setFehlerMeldung(EXPORT_ERROR_PREFIX + errorDetails, exitVal.toString());
+                Helper.setFehlerMeldung(EXPORT_ERROR_PREFIX + errorDetails);
                 Helper.addMessageToProcessJournal(myProzess.getId(), LogType.DEBUG, errorDetails);
                 log.error(EXPORT_ERROR_PREFIX + errorDetails);
                 problems.add(EXPORT_ERROR_PREFIX + errorDetails);

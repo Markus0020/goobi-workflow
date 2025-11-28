@@ -2,9 +2,15 @@ package org.goobi.beans;
 
 import java.io.Serializable;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import org.goobi.beans.GoobiProperty.PropertyOwnerType;
+
+import de.sub.goobi.persistence.managers.PropertyManager;
 import lombok.Data;
+import lombok.Setter;
 
 /**
  * This file is part of the Goobi Application - a Workflow tool for the support of mass digitization.
@@ -30,7 +36,7 @@ import lombok.Data;
  */
 
 @Data
-public class Batch implements Serializable {
+public class Batch implements IPropertyHolder, Serializable {
 
     private static final long serialVersionUID = -1142562887294508206L;
 
@@ -59,6 +65,9 @@ public class Batch implements Serializable {
      */
     private String batchLabel;
 
+    @Setter
+    private List<GoobiProperty> properties = new ArrayList<>();
+
     public String getStartDateAsString() {
         if (startDate == null) {
             return "";
@@ -74,5 +83,23 @@ public class Batch implements Serializable {
         } else {
             return DateFormat.getDateInstance().format(endDate);
         }
+    }
+
+    @Override
+    public void setId(Integer id) {
+        batchId = id;
+    }
+
+    @Override
+    public Integer getId() {
+        return batchId;
+    }
+
+    @Override
+    public List<GoobiProperty> getProperties() {
+        if ((properties.isEmpty()) && batchId != null) {
+            properties = PropertyManager.getPropertiesForObject(batchId, PropertyOwnerType.PROJECT);
+        }
+        return properties;
     }
 }

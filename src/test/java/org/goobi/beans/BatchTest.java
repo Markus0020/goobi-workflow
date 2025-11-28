@@ -6,8 +6,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import org.goobi.beans.GoobiProperty.PropertyOwnerType;
 import org.junit.Test;
 
 import de.sub.goobi.AbstractTest;
@@ -47,9 +50,11 @@ public class BatchTest extends AbstractTest {
     public void testBatchId() {
         Batch fixture = new Batch();
         fixture.setBatchId(null);
+        assertNull(fixture.getId());
         assertNull(fixture.getBatchId());
-        fixture.setBatchId(666);
+        fixture.setId(666);
         assertEquals(666, fixture.getBatchId().intValue());
+        assertEquals(666, fixture.getId().intValue());
     }
 
     @Test
@@ -84,5 +89,16 @@ public class BatchTest extends AbstractTest {
         Batch fixture = new Batch();
         fixture.setEndDate(d);
         assertEquals(d, fixture.getEndDate());
+    }
+
+    @Test
+    public void testBatchProperties() throws Exception {
+        Batch fixture = new Batch();
+        GoobiProperty gp = new GoobiProperty(PropertyOwnerType.BATCH);
+        List<GoobiProperty> props = new ArrayList<>();
+        props.add(gp);
+        fixture.setProperties(props);
+        assertEquals(1, fixture.getProperties().size());
+
     }
 }

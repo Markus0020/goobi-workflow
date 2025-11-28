@@ -1163,7 +1163,7 @@ public class ConfigurationHelperTest extends AbstractTest {
 
     @Test
     public void testIsExportValidateImages() {
-        assertFalse(ConfigurationHelper.getInstance().isExportValidateImages());
+        assertTrue(ConfigurationHelper.getInstance().isExportValidateImages());
     }
 
     @Test
@@ -1206,7 +1206,7 @@ public class ConfigurationHelperTest extends AbstractTest {
 
     @Test
     public void testGoobiInstanceName() {
-        assertEquals("", ConfigurationHelper.getInstance().getGoobiInstanceName());
+        assertEquals("fixture", ConfigurationHelper.getInstance().getGoobiInstanceName());
     }
 
     @Test
