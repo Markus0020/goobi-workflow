@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.goobi.beans.Institution;
 import org.goobi.beans.Process;
 import org.goobi.beans.Project;
 import org.goobi.beans.ProjectFileGroup;
@@ -101,10 +102,25 @@ public class MockProcess {
         alto.setSuffix("xml");
         alto.setProject(project);
 
+        ProjectFileGroup other = new ProjectFileGroup();
+        other.setFolder("getOcrAltoDirectory");
+        other.setMimetype("text/xml");
+        other.setName("other");
+        other.setPath("/opt/digiverso/viewer/alto/1/");
+        other.setSuffix("xml");
+        other.setProject(project);
+        other.setUseOriginalFiles(true);
+
         List<ProjectFileGroup> list = new ArrayList<>();
         list.add(presentation);
         list.add(alto);
+        list.add(other);
         project.setFilegroups(list);
+
+        Institution inst = new Institution();
+        inst.setShortName("shortname");
+        inst.setLongName("longname");
+        project.setInstitution(inst);
 
     }
 
