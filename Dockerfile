@@ -11,7 +11,8 @@ RUN echo $build; if [ "$build" = "true" ]; then mvn clean package; elif [ -f "/w
 FROM tomcat:10-jre21 AS assemble
 LABEL maintainer="Matthias Geerdsen <matthias.geerdsen@intranda.com>"
 
-ENV DB_SERVER workflow-db
+#make sure server name matches the one in the docker-compose file
+ENV DB_SERVER goobi-db
 ENV DB_PORT 3306
 ENV DB_NAME goobi
 ENV DB_USER goobi

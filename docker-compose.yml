@@ -1,10 +1,11 @@
 version: "3.7"
 services:
   goobi:
-    image: intranda/goobi-workflow:default-plugins
-    # build:
-    #   context: .
-    #   dockerfile: Goobi/Dockerfile
+    # using build/context/dockerfile instead of the official image from DockerHub (custom fixes)
+    # image: intranda/goobi-workflow:default-plugins
+    build:
+      context: .
+      dockerfile: ./Dockerfile
     ports:
       - "8080:8080"
     volumes:
@@ -24,7 +25,7 @@ services:
       - goobi-db
 
   goobi-db:
-    image: mariadb:10.1
+    image: mariadb:10.11
     environment:
       MYSQL_ROOT_PASSWORD: goobi
       MYSQL_DATABASE: goobi
