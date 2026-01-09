@@ -19,8 +19,7 @@ ENV DB_USER goobi
 ENV DB_PASSWORD goobi
 
 RUN ["/bin/bash","-c", "mkdir -p /opt/digiverso/goobi/{activemq,config,lib,metadata,rulesets,scripts,static_assets,tmp,xslt,plugins/{administration,command,dashboard,export,GUI,import,opac,statistics,step,validation,workflow}}"]
-RUN mkdir -p /usr/local/tomcat/conf/Catalina/localhost/ && mkdir -p /usr/local/tomcat/webapps/workflow
-
+RUN mkdir -p /usr/local/tomcat/conf/Catalina/localhost/ && mkdir -p /usr/local/tomcat/webapps/goobi
 # Prepare template configuration for Goobi workflow
 ENV CONFIGSOURCE folder
 ENV CONFIG_FOLDER /workflow-template
@@ -36,7 +35,7 @@ RUN sed -i 's/^script_deleteSymLink=script_deleteSymLink.sh/script_deleteSymLink
 RUN sed -i 's/TOMCATUSER=tomcat/TOMCATUSER=root/' /workflow-template/scripts/iii.sh
 
 # General configurations
-COPY install/docker/goobi.xml.template /usr/local/tomcat/conf/workflow.xml.template
+COPY install/docker/goobi.xml.template /usr/local/tomcat/conf/goobi.xml.template
 COPY install/docker/setenv.sh /usr/local/tomcat/bin/setenv.sh
 COPY install/docker/server.xml /usr/local/tomcat/conf/server.xml
 COPY install/docker/run.sh /run.sh
@@ -44,15 +43,13 @@ COPY install/docker/log4j.xml /opt/digiverso/log4j.xml
 COPY install/docker/log4j2.xml /opt/digiverso/log4j2.xml
 
 RUN rm -rf ${CATALINA_HOME}/webapps/*
-# redirect / to /workflow/
+# redirect / to /goobi/
 RUN mkdir ${CATALINA_HOME}/webapps/ROOT && \
-    echo '<% response.sendRedirect("/workflow/"); %>' > ${CATALINA_HOME}/webapps/ROOT/index.jsp
+    echo '<% response.sendRedirect("/goobi/"); %>' > ${CATALINA_HOME}/webapps/ROOT/index.jsp
 COPY --from=build  /workflow/target/*.war /
 RUN apt-get update && apt-get -y install unzip
-RUN unzip /*.war -d /usr/local/tomcat/webapps/workflow && rm /*.war
-# Manually patch this until 'workflow' is used everywhere
-RUN sed -i 's/goobi\.xml/workflow\.xml/g' /run.sh
-RUN sed -i 's/\/goobi\/jvmtemp/\/workflow\/jvmtemp/g' /run.sh
+RUN unzip /*.war -d /usr/local/tomcat/webapps/goobi && rm /*.war
+
 
 ##### SYSTEM PACKAGE INSTALLATION AND UPDATES
 RUN apt-get update && \
