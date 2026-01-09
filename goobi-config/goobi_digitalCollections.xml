@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <DigitalCollections>
-	<default>
-		<DigitalCollection>General</DigitalCollection>
-		<DigitalCollection>Biology</DigitalCollection>
-		<DigitalCollection>Physics</DigitalCollection>
-		<DigitalCollection>Mathematics</DigitalCollection>
-	</default>
+  <default>
+    <DigitalCollection>DefaultCollection</DigitalCollection>
+  </default>
+  <project>
+    <name>sample_project</name>
+    <DigitalCollection>Monograph</DigitalCollection>
+    <DigitalCollection>Varia</DigitalCollection>
+  </project>
+  <project>
+    <name>example2</name>
+    <DigitalCollection>Other</DigitalCollection>
+  </project>
 </DigitalCollections>

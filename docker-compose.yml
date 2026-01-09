@@ -24,6 +24,10 @@ services:
         source: ./goobi-config
         target: /opt/digiverso/goobi/config
 
+      # - type: bind
+      #   source: ./goobi-data 
+      #   target: /opt/digiverso/goobi/data
+
     depends_on: 
       - goobi-db
 
